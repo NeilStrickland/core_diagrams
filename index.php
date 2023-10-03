@@ -10,7 +10,7 @@ $keys = array();
 $demos_json = <<<JSON
 [
  ["real_setops","Operations on subsets of the reals",[]],
- ["nat_setops","Operationss on finite subsets of the naturals",[]],
+ ["nat_setops","Operations on finite subsets of the naturals",[]],
  ["prod","Cartesian products",[]],
  ["symdiff","De Morgan's laws and symetric differences",[]]
 ]
