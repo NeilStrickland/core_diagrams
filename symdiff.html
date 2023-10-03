@@ -1,0 +1,458 @@
+<html>
+ <head>
+  <style type="text/css" media="screen">
+   @import url(MAS106_demo.css);
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js"> 
+   MathJax.Hub.Config({
+    extensions: ["tex2jax.js"],
+    jax: ["input/TeX","output/HTML-CSS"],
+    tex2jax: {inlineMath: [["$","$"]]}
+   });
+  </script> 
+  <style type="text/css">
+   div#main_div {
+    position: absolute;
+    top: 10px;
+    left: 600px;
+    font-size: 20px;
+   }
+   
+   td.A { 
+    font-size: 20px;
+    width: 480px;
+   }
+   
+   td.B { 
+    font-size: 20px;
+    width: 170px;
+   }
+   
+   div#controls_div { 
+    position:absolute; 
+    right: 30px;
+    top: 30px;
+   }
+
+   div.set {
+    padding: 8px;
+    height: 20px;
+    border-radius: 4px;
+    background-color: #FFEE66;
+   }
+
+   div.set:hover {
+    cursor: pointer;
+   }
+
+  </style>
+  <script src="core.js"></script>  
+  <script type="text/javascript">
+   
+   var region = {
+    I : [],
+    col : '',
+    x0 : 0,
+    y0 : 0,
+    svg : null,
+    text : null,
+    eq : null
+   };
+   
+   region.set_color = function(c) {
+    this.col = c;
+    this.svg.setAttribute('fill',c);
+   };
+      
+   var arc = {
+    svg : null,
+    eq : null
+   };
+   
+   var point = {
+    svg : null,
+    eq : null
+   };
+   
+   var demo = Object.create(core.demo);
+
+   demo.x0 = 300;
+   demo.y0 = 350;
+   demo.r = 120;
+   demo.a =  90;
+   
+   demo.make_chi = function(x) {
+    x.chi = {};
+    for (var i = 1; i <= 7; i++) {
+     x.chi[i] = 0;
+    }
+    for (var j of x.regions) {
+     x.chi[j] = 1;
+    }
+   }
+
+   demo.set = {};
+
+   demo.set.munch = function(s0) {
+    var s = Object.create(this);
+
+    s.latex = '$' + s0[0] + '$';
+    s.regions = s0[1];
+    s.left = s0[2];
+    s.top = s0[3];
+
+    demo.make_chi(s);
+    return s;
+   }
+
+   demo.set.create_dom = function() {
+    this.div = document.createElement('div');
+    this.div.className = 'set';
+    this.div.innerHTML = this.latex;
+    this.div.style.position = 'absolute';
+    this.div.style.left = (800 + 100 * this.left) + 'px';
+    this.div.style.top = (60 + 60 * this.top) + 'px';
+
+    (function(d,i) {d.onclick = function() {demo.set_set(i);}})(this.div,this.i);
+    demo.frame.appendChild(this.div);
+   }
+
+   demo.init = function() {
+    var x0,y0,a,b,r,i,s,p;
+
+    this.name = 'symdiff';
+
+    this.find_ids();
+
+    this.sets0 = [
+     ['X\\cap Y\\cap Z'         ,[7],             0, 0],
+     ['X\\cap Y'                ,[4,7],          -1, 1],
+     ['Y\\cap Z'                ,[5,7],           0, 1],
+     ['X\\cap Z'                ,[6,7],           1, 1],
+     ['X\\cap(Y\\cup Z)'        ,[4,6,7],         2, 1],
+     ['X'                       ,[1,4,6,7],      -1, 2],
+     ['Y'                       ,[2,4,5,7],       0, 2],
+     ['Z'                       ,[3,5,6,7],       1, 2],
+     ['X\\cup Y'                ,[1,2,4,5,6,7],  -1, 3],
+     ['Y\\cup Z'                ,[2,3,4,5,6,7],   0, 3],
+     ['X\\cup Z'                ,[1,3,4,5,6,7],   1, 3],
+     ['X\\cup(Y\\cap Z)'        ,[1,4,5,6,7],     2, 3],
+     ['X\\cup Y\\cup Z'         ,[1,2,3,4,5,6,7], 0, 4],
+     ['X\\setminus Y'           ,[1,6],          -1, 5],
+     ['X\\Delta Y'              ,[1,2,5,6],       0, 5],
+     ['Y\\setminus X'           ,[2,5],           1, 5],
+     ['X\\setminus(Y\\cup Z)'   ,[1],             2, 5],
+     ['Y\\setminus Z'           ,[2,4],          -1, 6],
+     ['Y\\Delta Z'              ,[2,3,4,6],       0, 6],
+     ['Z\\setminus Y'           ,[3,6],           1, 6],
+     ['X\\setminus Z'           ,[1,4],          -1, 7],
+     ['X\\Delta Z'              ,[1,3,4,5],       0, 7],
+     ['Z\\setminus X'           ,[3,5],           1, 7],
+     ['X\\setminus(Y\\cap Z)'   ,[1,4,6],         2, 7],
+     ['X\\setminus(Y\\Delta Z)' ,[1,7],          -1, 8],
+     ['(Y\\Delta Z)\\setminus X',[2,3],           1, 8],
+     ['(X\\Delta Y)\\setminus Z',[1,2],          -1, 9],
+     ['X\\setminus(Y\\Delta Z)' ,[3,7],           1, 9],
+     ['X\\Delta Y\\Delta Z'     ,[1,2,3,7],       0,10],
+    ];
+
+    this.step = 0;
+
+    x0 = this.x0;
+    y0 = this.y0;
+    r = this.r;
+    a = this.a;
+    b = Math.sqrt(4*r*r - 3*a*a);
+    a2 = 3 * a;
+    
+    this.c = {};
+    this.cs = {};
+
+    this.c[ 1] = [0,a];
+    this.c[ 2] = [-0.865*a,-0.5*a];
+    this.c[ 3] = [ 0.865*a,-0.5*a];
+    
+    for (i = 1; i <= 3; i++) {
+     x = Math.round(this.x0 + this.c[i][0]);
+     y = Math.round(this.y0 - this.c[i][1]);
+     this.cs[i] = ' ' + x + ' ' + y;
+    }
+
+    this.p = {};
+    this.ps = {};
+
+    this.p[ 0] = [ 0,0];
+    this.p[ 1] = [ 0,-0.5*(a+b)];
+    this.p[ 2] = [ 0.432*(a+b),0.25*(a+b)];
+    this.p[ 3] = [-0.432*(a+b),0.25*(a+b)];
+    this.p[ 4] = [0, 0.5*(b-a)];
+    this.p[ 5] = [ 0.432*(a-b),0.25*(a-b)];
+    this.p[ 6] = [-0.432*(a-b),0.25*(a-b)];
+    this.p[ 7] = [0,-a2];
+    this.p[ 8] = [0, a2];
+
+    for (i = 0; i <= 8; i++) {
+     x = Math.round(this.x0 + this.p[i][0]);
+     y = Math.round(this.y0 - this.p[i][1]);
+     this.ps[i] = ' ' + x + ' ' + y;
+    }
+
+    this.cols = {
+     0 : '#FFE119',
+     1 : '#F58231',
+     2 : '#BFEF45',
+     3 : '#3CB44B',
+     4 : '#42D4F4',
+     5 : '#4363D8',
+     6 : '#911EB4',
+     7 : '#F032E6'
+    };
+     
+    this.eqs = {};
+    
+    this.region = {};
+    
+    this.make_region(0,[4,0,0,5]            ,[]     , 177,  93,'(X\\cup Y\\cup Z)^c');
+    this.make_region(1,[1,0,1,5,0,1,3,1,0,1],[1]    ,-110, -66,'X\\setminus(Y\\cup Z)');
+    this.make_region(2,[2,0,1,6,0,1,1,1,0,2],[2]    , 110, -66,'Y\\setminus(X\\cup Z)');
+    this.make_region(3,[3,0,1,4,0,1,2,1,0,3],[3]    ,   0, 110,'Z\\setminus(X\\cup Y)');
+    this.make_region(4,[6,0,1,5,0,0,1,0,0,6],[1,2]  ,   0, -70,'(X\\cap Y)\\setminus Z');
+    this.make_region(5,[4,0,1,6,0,0,2,0,0,4],[2,3]  ,  59,  31,'(Y\\cap Z)\\setminus X');
+    this.make_region(6,[5,0,1,4,0,0,3,0,0,5],[1,3]  , -59,  31,'(X\\cap Z)\\setminus Y');
+    this.make_region(7,[4,0,0,5,0,0,6,0,0,4],[1,2,3],   0,   0,'X\\cap Y\\cap Z');
+
+    s = 'M ' + this.ps[7] + 
+     ' A ' + a2 + ' ' + a2 + ' 0 0 0 ' + this.ps[8] + 
+     ' A ' + a2 + ' ' + a2 + ' 0 0 0 ' + this.ps[7] + 
+     ' L ' + this.ps[1] + 
+     ' A ' + r + ' ' + r + ' 0 1 0 ' + this.ps[2] +
+     ' A ' + r + ' ' + r + ' 0 1 0 ' + this.ps[3] +
+     ' A ' + r + ' ' + r + ' 0 1 0 ' + this.ps[1] +
+     ' L ' + this.ps[7] + ' z ';
+     
+    this.region[0].svg.setAttribute('d',s);
+    
+    for (i = 0; i <= 7; i++) {
+     this.add_region_text(i,i);
+     this.add_handlers(this.region[i]);
+    }
+    
+    this.arc = {};
+    
+    this.make_arc( 1,3,1,0,1,[1],'X\\setminus(Y\\cup Z)');
+    this.make_arc( 2,1,1,0,2,[2],'Y\\setminus(X\\cup Z)');
+    this.make_arc( 3,2,1,0,3,[3],'Z\\setminus(X\\cup Y)');
+    this.make_arc( 4,5,0,0,1,[1,4],'X\\setminus Z');
+    this.make_arc( 5,6,0,0,2,[2,5],'Y\\setminus X');
+    this.make_arc( 6,4,0,0,3,[3,6],'Z\\setminus Y');
+    this.make_arc( 7,1,0,0,6,[2,4],'Y\\setminus Z');
+    this.make_arc( 8,2,0,0,4,[3,5],'Z\\setminus X');
+    this.make_arc( 9,3,0,0,5,[1,6],'X\\setminus Y');
+    this.make_arc(10,4,0,0,5,[6,7],'X\\cap Z');
+    this.make_arc(11,5,0,0,6,[4,7],'X\\cap Y');
+    this.make_arc(12,6,0,0,4,[5,7],'Y\\cap Z');
+
+    for (i = 1; i <= 12; i++) {
+     this.add_handlers(this.arc[i]);
+    }
+    
+    this.point = {};
+    
+    this.make_point(0,[1,2,3,4,5,6,7],'X\\cup Y\\cup Z');
+    this.make_point(1,[1,2,4,5,6,7],'X\\cup Y');
+    this.make_point(2,[2,3,4,5,6,7],'Y\\cup Z');
+    this.make_point(3,[1,3,4,5,6,7],'X\\cup Z');
+    this.make_point(4,[3,5,6,7],'Z');
+    this.make_point(5,[1,6,4,7],'X');
+    this.make_point(6,[2,4,5,7],'Y');
+
+    for (i = 0; i <= 6; i++) {
+     this.add_handlers(this.point[i]);
+    }
+    
+    this.text = {};
+    demo.make_text(1,'X',-a,-2*a);
+    demo.make_text(2,'Y', a,-2*a);
+    demo.make_text(1,'Z',0,2.5*a);
+
+    this.sets = [];
+    i = 0;
+    for (s0 of this.sets0) {
+     var s = this.set.munch(s0);
+     s.i = i++;
+     s.create_dom();
+     this.sets.push(s);
+    }
+
+    this.caption = document.createElement('div');
+    this.caption.style.position = 'absolute';
+    this.caption.style.left = '270px';
+    this.caption.style.top = '650px';
+    this.caption.innerHTML = '';
+    this.frame.appendChild(this.caption);
+   }
+   
+   demo.make_region = function(i,u,I,x0,y0,e) {
+    var n,j,A,s,p,r;
+    
+    r = Object.create(region);
+    this.region[i] = r;
+    r.regions = [i];
+    demo.make_chi(r);
+    r.label = 'r' + i;
+    r.col = this.cols[i];
+    r.I = I;
+    r.x0 = x0;
+    r.y0 = y0;
+    r.latex = '$' + e + '$';
+    
+    n = u.length;
+    A = ' A ' + this.r + ' ' + this.r + ' 0 ';
+    s = 'M ' + this.ps[u[0]];
+    
+    for(j = 1; j < n; j+= 3) {
+     s += A + u[j] + ' ' + u[j+1] + ' ' + this.ps[u[j+2]];
+    }
+    
+    p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    p.setAttribute('d',s);
+    p.setAttribute('stroke','none');
+    p.setAttribute('fill','grey');
+    p.setAttribute('fill-rule','evenodd');
+    this.main_svg.appendChild(p);
+    r.svg = p;
+    
+    return r;
+   }
+   
+   demo.make_arc = function(i,p,f,g,q,R,e) {
+    a = Object.create(arc);
+    this.arc[i] = a;
+    a.index = i;
+    a.label = 'a' + i;
+    a.regions = R;
+    demo.make_chi(a);
+    a.latex = '$' + e + '$';
+    
+    s = 'M ' + this.ps[p] + ' A ' + this.r + ' ' + this.r + ' 0 ' +
+     f + ' ' + g + ' ' + this.ps[q];
+    p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    p.setAttribute('d',s);
+    p.setAttribute('stroke','white');
+    p.setAttribute('stroke-opacity','0');
+    p.setAttribute('stroke-width','5px');
+    p.setAttribute('fill','none');
+    this.main_svg.appendChild(p);
+    a.svg = p;
+    
+    return a;
+   }
+   
+   demo.make_point = function(i,R,e) {
+    m = Object.create(point);
+    this.point[i] = m;
+    m.index = i;
+    m.label = 'p' + i;
+    m.regions = R;
+    demo.make_chi(m);
+    m.latex = '$' + e + '$';
+    
+    p = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    p.setAttribute('cx',this.x0 + this.p[i][0]);
+    p.setAttribute('cy',this.y0 - this.p[i][1]);
+    p.setAttribute('r',10);
+    p.setAttribute('stroke','none');
+    p.setAttribute('fill','white');
+    p.setAttribute('fill-opacity','0');
+    this.main_svg.appendChild(p);
+    m.svg = p;
+    
+    return m;
+   }
+   
+   demo.make_text = function(i,s,x,y) {
+    var q;
+    
+    q = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    q.setAttribute('text-anchor','middle');
+    q.setAttribute('alignment-baseline','middle');
+    q.setAttribute('font-size','24px');
+    q.setAttribute('fill','black');
+    q.setAttribute('x',this.x0 + x);
+    q.setAttribute('y',this.y0 - y);
+    q.textContent = s;
+    this.main_svg.appendChild(q);
+    this.text[i] = q;
+   }
+
+   demo.add_region_text = function(i,t) {
+    r = this.region[i];
+    q = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    q.setAttribute('text-anchor','middle');
+    q.setAttribute('alignment-baseline','middle');
+    q.setAttribute('font-size','24px');
+    q.setAttribute('fill','black');
+    q.setAttribute('x',this.x0 + r.x0);
+    q.setAttribute('y',this.y0 - r.y0);
+    q.textContent = t;
+    this.main_svg.appendChild(q);
+    r.text = q;    
+   }
+   
+   demo.add_handlers = function(x) {
+    var me = this;
+    x.svg.onmouseover  = function() { me.handle_over(x); }
+    x.svg.onmouseout   = function() { me.handle_out(x); }
+    if (x.text) {
+     x.text.onmouseover = function() { me.handle_over(x); }
+     x.text.onmouseout  = function() { me.handle_out(x); }
+    }
+   }
+   
+   demo.handle_over = function(x) {
+    var i,j,r;
+    
+    for(j = 0; j < 8; j++) {
+     r = this.region[j];
+     r.svg.setAttribute('fill',x.chi[j] ? r.col : 'grey');
+    }
+    if (x.latex) {
+     this.caption.innerHTML = x.latex;
+     MathJax.Hub.Queue(["Typeset",MathJax.Hub,this.caption])
+    }
+   }
+   
+   demo.handle_out = function(x) {
+    for(j = 0; j < 8; j++) {
+     r = this.region[j];
+     r.svg.setAttribute('fill','grey');
+    }
+    this.caption.innerHTML = '';
+    MathJax.Hub.Queue(["Typeset",MathJax.Hub,this.caption])
+   }
+   
+   demo.set_set = function(i) {
+    var s = this.sets[i];
+
+    for (j = 0; j < 8; j++) {
+     var r = this.region[j];
+     var c = s.chi[j] ? r.col : 'grey';
+     this.region[j].svg.setAttribute('fill',c);
+    }
+
+    this.caption.innerHTML = s.latex;
+    MathJax.Hub.Queue(["Typeset",MathJax.Hub,this.caption])
+   }
+
+  </script>
+ </head>
+ <body onload="demo.init()">
+  <div id="frame">
+   <svg id="main_svg" width="650" height="650">
+   </svg>
+   <div id="main_div">
+   </div>
+  </div>
+ </body>
+</html>
+

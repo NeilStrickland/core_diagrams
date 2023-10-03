@@ -1,0 +1,194 @@
+<html>
+ <head>
+  <style type="text/css" media="screen">
+   @import url(MAS106_demo.css);
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js"> 
+   MathJax.Hub.Config({
+    extensions: ["tex2jax.js"],
+    jax: ["input/TeX","output/HTML-CSS"],
+    tex2jax: {inlineMath: [["$","$"]]}
+   });
+  </script> 
+  <style type="text/css">
+   div#main_div {
+    position: absolute;
+    top: 10px;
+    left: 600px;
+    font-size: 20px;
+   }
+   
+   div#controls_div { 
+    position:absolute; 
+    right: 30px;
+    top: 30px;
+   }
+
+  </style>
+  <script src="core.js"></script>  
+  <script type="text/javascript">
+   var demo = Object.create(core.demo);
+
+   demo.x0 = 200;
+   demo.y0 = 550;
+   demo.w0 = 100;
+   demo.h0 = 100;
+
+   demo.f = function (i) {
+    return Math.round(demo.x0 + i * demo.w0);
+   }
+
+   demo.g = function (j) {
+    return Math.round(demo.y0 - j * demo.h0);
+   }
+
+   demo.show_set = function(i) {
+    for (var j in this.sets) {
+     if (j == i) {
+      this.sets[j].div.className = 'control_selected';
+     } else {
+      this.sets[j].div.className = 'control';
+     }
+    }
+
+    for (p = 1; p <= this.n; p++) {
+     for (q = 1; q <= this.n; q++) {
+      if (this.sets[i].chi[p][q]) {
+       this.grid[p][q].setAttribute('fill', 'red');
+       this.grid[p][q].setAttribute('r', 5);
+      } else {
+       this.grid[p][q].setAttribute('fill', 'grey');
+       this.grid[p][q].setAttribute('r', 1);
+      }
+     }
+    }
+
+    this.caption.innerHTML = this.sets[i].full_latex;
+    MathJax.Hub.Queue(["Typeset",MathJax.Hub,this.caption]);
+   }
+
+   demo.init = function() {
+    var me = this;
+    this.name = 'prod';
+    this.n = 4;
+
+    this.find_ids();
+
+    this.grid = {};
+    this.x_label = {};
+    this.y_label = {};
+
+    for (var i = 1; i <= this.n; i++) {
+     this.x_label[i] = core.svg.text(i, this.f(i), this.g(0.5));
+     this.y_label[i] = core.svg.text(i, this.f(0.5), this.g(i));
+     this.main_svg.appendChild(this.x_label[i]);
+     this.main_svg.appendChild(this.y_label[i]);
+     this.grid[i] = {};
+     for (var j = 1; j <= this.n; j++) {
+      this.grid[i][j] = core.svg.disc(this.f(i), this.g(j), 2, 'grey');
+      this.main_svg.appendChild(this.grid[i][j]);
+     }
+    }
+
+    this.A = [1, 2, 3];
+    this.B = [3, 4];
+    this.chi_A = { 1 : true, 2 : true, 3 : true, 4 : false };
+    this.chi_B = { 1 : false, 2 : false, 3 : true, 4 : true };
+    this.chi_AB = {};
+    this.chi_BA = {};
+    this.chi_ABuBA = {};
+    this.chi_ABnBA = {};
+    this.chi_ABmBA = {};
+
+    for (i = 1; i <= this.n; i++) {
+     this.chi_AB[i] = {};
+     this.chi_BA[i] = {};
+     this.chi_ABuBA[i] = {};
+     this.chi_ABnBA[i] = {};
+     this.chi_ABmBA[i] = {};
+     for (j = 1; j <= this.n; j++) {
+      this.chi_AB[i][j] = this.chi_A[i] && this.chi_B[j];
+      this.chi_BA[i][j] = this.chi_B[i] && this.chi_A[j];
+      this.chi_ABuBA[i][j] = this.chi_AB[i][j] || this.chi_BA[i][j];
+      this.chi_ABnBA[i][j] = this.chi_AB[i][j] && this.chi_BA[i][j];
+      this.chi_ABmBA[i][j] = this.chi_AB[i][j] && ! this.chi_BA[i][j];
+     }
+    }
+
+    this.sets = [
+     {latex : 'A\\times B', chi : this.chi_AB},
+     {latex : 'B\\times A', chi : this.chi_BA},
+     {latex : '(A\\times B)\\cup(B\\times A)', chi : this.chi_ABuBA},
+     {latex : '(A\\times B)\\cap(B\\times A)', chi : this.chi_ABnBA},
+     {latex : '(A\\times B)\\setminus(B\\times A)', chi : this.chi_ABmBA}
+    ];
+
+    for (s of this.sets) {
+     s.elements = [];
+     for (i = 1; i <= this.n; i++) {
+      for (j = 1; j <= this.n; j++) {
+       if (s.chi[i][j]) {
+        s.elements.push([i,j]);
+       }
+      }
+     }
+
+     s.full_latex = '$' + s.latex + ' = \\{';
+     var c = '';
+     for (e of s.elements) {
+      s.full_latex += c + '(' + e[0] + ',' + e[1] + ')';
+      c = ',';
+     }
+     s.full_latex += '\\}$';
+
+     s.latex = '$' + s.latex + '$';
+    }
+
+    this.A_def = document.createElement('div');
+    this.A_def.style.position = 'absolute';
+    this.A_def.style.left = '800px';
+    this.A_def.style.top = '100px';
+    this.A_def.innerHTML = '$A = \\{1,2,3\\}$';
+    this.frame.appendChild(this.A_def);
+
+    this.B_def = document.createElement('div');
+    this.B_def.style.position = 'absolute';
+    this.B_def.style.left = '800px';
+    this.B_def.style.top = '150px';
+    this.B_def.innerHTML = '$B = \\{3,4\\}$';
+    this.frame.appendChild(this.B_def);
+
+    for (i in this.sets) {
+     var s = this.sets[i];
+     s.i = i;
+     s.div = document.createElement('div');
+     s.div.style.position = 'absolute';
+     s.div.style.left = '1000px';
+     s.div.style.top = (100 + 50 * i) + 'px';
+     s.div.style.width = '200px';
+     s.div.innerHTML = s.latex;
+     s.div.className = 'control';
+     (function(d,i) { d.onclick = function() { me.show_set(i); } })(s.div,i);
+     this.frame.appendChild(s.div);
+    }
+
+    this.caption = document.createElement('div');
+    this.caption.style.position = 'absolute';
+    this.caption.style.left = '200px';
+    this.caption.style.top = '600px';
+    this.caption.innerHTML = '';
+    this.frame.appendChild(this.caption);
+   }
+
+  </script>
+ </head>
+ <body onload="demo.init()">
+  <div id="frame">
+   <svg id="main_svg" width="1000" height="650">
+   </svg>
+   <div id="main_div">
+   </div>
+  </div>
+ </body>
+</html>
+  

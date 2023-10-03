@@ -1,0 +1,292 @@
+<html>
+
+<head>
+ <style type="text/css" media="screen">
+  @import url(MAS106_demo.css);
+ </style>
+
+ <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js">
+  MathJax.Hub.Config({
+   extensions: ["tex2jax.js"],
+   jax: ["input/TeX", "output/HTML-CSS"],
+   tex2jax: { inlineMath: [["$", "$"]] }
+  });
+ </script>
+ <script src="core.js"></script>
+ <script src="MAS106_demo.js"></script>
+ <style type="text/css">
+  div#main_div {
+   position: absolute;
+  }
+
+  div#vals_div {
+   position: absolute;
+   left: 30px;
+   top: 30px;
+  }
+
+  div#controls_div {
+   position: absolute;
+   left: 1200;
+   top: 0;
+  }
+
+  div#msg_div {
+   font-size: 22px;
+   margin: 20px;
+  }
+
+  text.set {
+   font-size: 20px;
+  }
+ </style>
+ <script type="text/javascript">
+
+  var demo = Object.create(core.demo);
+
+  demo.name = 'real_setops';
+  demo.x0 = 650;
+  demo.y0 = 400;
+  demo.w0 = 100;
+  demo.h0 = 60;
+
+  demo.f = function (i) {
+   return Math.round(demo.x0 + i * demo.w0);
+  }
+
+  demo.g = function (j) {
+   return Math.round(demo.y0 - j * demo.h0);
+  }
+
+  demo.fg = function (i, j) {
+   return { 'x': demo.f(i), 'y': demo.g(j) };
+  }
+
+  demo.subset0 = {};
+  demo.subset1 = {};
+
+  demo.subset0.munch = function (s0) {
+   var s = Object.create(demo.subset0);
+   s.name = s0.name;
+   s.pieces = [];
+
+   for (j = 0; j < 2; j++) {
+    var p0 = s0.pieces[j];
+    var p = interval.munch(p0);
+    s.pieces.push(p);
+   }
+   s.op = s0.op;
+   s.equiv_name = s0.equiv;
+
+   return s;
+  }
+
+  demo.subset0.create_dom = function() {
+   this.svg_group = core.svg.group();
+   this.svg_group.setAttribute('display', 'none');
+   demo.main_svg.appendChild(this.svg_group);
+   for (j = 0; j <= 2; j++) {
+    var p = this.pieces[j];
+    var y = 5 - j;
+    var c = ['red', 'blue', 'green'][j];
+    p.make_svg(core.svg, {y0 : y,  f: demo.f, g: demo.g, color: c});
+    this.svg_group.appendChild(p.svg_group);
+
+    p.tag = document.createElement('div');
+    p.tag.style.position = 'absolute';
+    p.tag.style.left = '50px';
+    p.tag.style.display = 'none';
+    p.tag.style.top = (60 * j + 130) + 'px';
+    if (j < 2) {
+     p.tag.innerHTML = '$' + p.latex() + '$';
+    } else {
+     p.tag.innerHTML = '$' + this.name + '$';
+    }
+    demo.frame.appendChild(p.tag);
+   }
+
+   this.label_div = document.createElement('div');
+   this.label_div.className = 'control';
+   this.label_div.style.width = '200px';
+   this.label_div.innerHTML = '$' + this.name + '=' + this.pieces[0].latex() + ' ' +
+    demo.op_latex[this.op] + this.pieces[1].latex() + '$';
+   var i = this.i;
+   this.label_div.onclick = function() { demo.set_subset0(i); };
+
+   demo.labels0_div.appendChild(this.label_div);
+  }
+
+  demo.subset0.show = function (t) {
+   var v = t ? 'block' : 'none';
+   var c = t ? '#CC6622' : '#F5B041';
+   this.svg_group.setAttribute('display', v);
+   this.label_div.style['border-color'] = c;
+   for (j = 0; j <= 2; j++) {
+    var p = this.pieces[j];
+    p.tag.style.display = v;
+   }
+  }
+
+  demo.subset1.munch = function(s0) {
+   var s = Object.create(demo.subset1);
+   s.name = s0.name;
+   s.value = interval.munch(s0.value);
+   s.equiv_name = s0.equiv;
+   s.equiv = demo.subsets0_index[s.equiv_name];
+   return s;
+  }
+
+  demo.subset1.create_dom = function() {
+   this.svg_group = core.svg.group();
+   this.svg_group.setAttribute('display', 'none');
+   demo.main_svg.appendChild(this.svg_group);
+
+   this.value.make_svg(core.svg, {y0 : 1,  f: demo.f, g: demo.g, color: 'green'});
+   this.svg_group.appendChild(this.value.svg_group);
+   this.label_div = document.createElement('div');
+   this.label_div.className = 'control';
+   this.label_div.style.width = '200px';
+   this.label_div.innerHTML = '$' + this.name + '=' + this.value.latex() + '$';
+   var i = this.i;
+   this.label_div.onclick = function() { demo.set_subset1(i); };
+   demo.labels1_div.appendChild(this.label_div);
+
+   this.tag = document.createElement('div');
+   this.tag.style.position = 'absolute';
+   this.tag.style.left = '50px';
+   this.tag.style.display = 'none';
+   this.tag.style.top = (430) + 'px';
+   this.tag.innerHTML = '$' + this.name + '$';
+   demo.frame.appendChild(this.tag);
+  }
+
+  demo.subset1.show = function (t) {
+   var v = t ? 'display' : 'none';
+   var c = t ? '#CC6622' : '#F5B041';
+   this.svg_group.setAttribute('display', v);
+   this.label_div.style['border-color'] = c;
+   this.tag.style.display = v;
+  }
+
+  demo.set_subset0 = function (i) {
+   if (this.current_subset0 != null && this.current_subset0.i == i) {
+    i = -1;
+    this.current_subset0 = null;
+   }
+   for (var s of this.subsets0) {
+    if (s.i == i) {
+     this.current_subset0 = s;
+     s.show(true);
+    } else {
+     s.show(false);
+    }
+   }
+  }
+
+  demo.set_subset1 = function (i) {
+   if (this.current_subset1 != null && this.current_subset1.i == i) {
+    i = -1;
+    this.current_subset1 = null;
+   }
+   for (var s of this.subsets1) {
+    if (s.i == i) {
+     this.current_subset1 = s;
+     s.show(true);
+    } else {
+     s.show(false);
+    }
+   }
+  }
+
+  demo.init = function () {
+   var e, i, j, k, dx, dy, old_sets;
+
+   var me = this;
+   this.find_ids(['labels0_div', 'labels1_div']);
+
+   demo.subsets00 = [
+    { name: 'A', 'pieces': [['oo',         0,        1], ['oc', -Infinity,        0]], 'op': 'union'    , 'equiv': 'J' },
+    { name: 'B', 'pieces': [['oc', -Infinity,        1], ['co',         1, Infinity]], 'op': 'union'    , 'equiv': 'K' },
+    { name: 'C', 'pieces': [['oo', -Infinity, Infinity], ['oo',         1, Infinity]], 'op': 'minus'    , 'equiv': 'I' },
+    { name: 'D', 'pieces': [['oo', -Infinity,        1], ['oo',        -1, Infinity]], 'op': 'intersect', 'equiv': 'M' },
+    { name: 'E', 'pieces': [['oc', -Infinity,        1], ['co',         1, Infinity]], 'op': 'intersect', 'equiv': 'L' },
+    { name: 'F', 'pieces': [['oo', -Infinity,        1], ['oo',         1, Infinity]], 'op': 'intersect', 'equiv': 'H' }
+   ];
+
+   demo.subsets10 = [
+    { 'name': 'H', 'value': ['oo', 0, 0] },
+    { 'name': 'I', 'value': ['oc', -Infinity, 1] },
+    { 'name': 'J', 'value': ['oo', -Infinity, 1] },
+    { 'name': 'K', 'value': ['oo', -Infinity, Infinity] },
+    { 'name': 'L', 'value': ['cc', 1, 1] },
+    { 'name': 'M', 'value': ['oo', -1, 1] }
+   ];
+
+   demo.op_latex = { 'union': '\\cup', 'intersect': '\\cap', 'minus': '\\setminus' };
+
+   demo.subsets0 = [];
+   demo.subsets1 = [];
+   demo.subsets0_index = {};
+   demo.subsets1_index = {};
+   demo.current_subset0 = null;
+   demo.current_subset1 = null;
+
+   this.x_axis = core.svg.hline(demo.f(-5), demo.f(5), demo.g(0), 'gray', 1);
+   this.main_svg.appendChild(this.x_axis);
+   for (var i = -1; i <= 1; i++) {
+    this.main_svg.appendChild(core.svg.vline(demo.f(i), demo.g(-0.2), demo.g(0), 'gray', 1));
+    this.main_svg.appendChild(core.svg.text(i, demo.f(i), demo.g(-0.5)));
+   }
+
+   var i = 0;
+
+   for (s0 of demo.subsets00) {
+    var s = demo.subset0.munch(s0);
+    demo.subsets0.push(s)
+    demo.subsets0_index[s.name] = s;
+    s.i = i++;
+   }
+
+   i = 0;
+
+   for (s0 of demo.subsets10) {
+    var s = demo.subset1.munch(s0);
+    demo.subsets1.push(s);
+    demo.subsets1_index[s.name] = s;
+    s.i = i++;
+   }
+
+   for (s of demo.subsets0) {
+    s.equiv = demo.subsets1_index[s.equiv_name];
+    s.value = s.equiv.value;
+    var p = interval.munch([s.value.type, s.value.start, s.value.end]);
+    s.pieces.push(p);
+    s.create_dom();
+   }
+
+   for (s of demo.subsets1) {
+    s.create_dom();
+   } 
+  }
+
+ </script>
+</head>
+
+<body onload="demo.init()">
+ <div id="frame">
+  <div id="labels0_div" style="display: flex"></div>
+  <svg id="main_svg" width="1200" height="500"></svg>
+  <div id="labels1_div" style="display: flex"></div>
+  <!--
+   <div id="controls_div">
+    <div class="control" id="previous" onclick="demo.previous()">Previous</div>
+    <div class="control" id="next" onclick="demo.next()">Next</div>
+   </div>
+   <div class="youtube_link">
+    <img id="youtube_button" src="video_icon.png" height="40px"/>
+   </div>
+-->
+ </div>
+</body>
+
+</html>

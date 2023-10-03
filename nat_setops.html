@@ -1,0 +1,305 @@
+<html>
+
+<head>
+ <meta charset="UTF-8">
+ <style type="text/css" media="screen">
+  @import url(MAS106_demo.css);
+ </style>
+
+ <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js">
+  MathJax.Hub.Config({
+   extensions: ["tex2jax.js"],
+   jax: ["input/TeX", "output/HTML-CSS"],
+   tex2jax: { inlineMath: [["$", "$"]] }
+  });
+ </script>
+ <script src="core.js"></script>
+ <script src="MAS106_demo.js"></script>
+ <style type="text/css">
+  div#main_div {
+   position: absolute;
+  }
+
+  div#vals_div {
+   position: absolute;
+   left: 30px;
+   top: 30px;
+  }
+
+  div#controls_div {
+   position: absolute;
+   left: 1200;
+   top: 0;
+  }
+
+  div#msg_div {
+   font-size: 22px;
+   margin: 20px;
+  }
+
+  text.set {
+   font-size: 20px;
+  }
+ </style>
+ <script type="text/javascript">
+
+  var demo = Object.create(core.demo);
+
+  demo.name = 'nat_setops';
+  demo.x0 = 200;
+  demo.y0 = 400;
+  demo.w0 = 50;
+  demo.h0 = 60;
+
+  demo.ops = [
+   {name  : 'union'    , latex : '\\cup',      unicode : '∪'},
+   {name  : 'intersect', latex : '\\cap',      unicode : '∩'},
+   {name  : 'minus'    , latex : '\\setminus', unicode : '∖'}
+  ];
+
+  demo.f = function (i) {
+   return Math.round(demo.x0 + i * demo.w0);
+  }
+
+  demo.g = function (j) {
+   return Math.round(demo.y0 - j * demo.h0);
+  }
+
+  demo.fg = function (i, j) {
+   return { 'x': demo.f(i), 'y': demo.g(j) };
+  }
+
+  demo.subset = {};
+  demo.current_set = { 0 : null, 1 : null };
+  demo.current_op = null;
+
+  demo.N = 20;
+
+  demo.subset.munch = function (s0) {
+   var s = Object.create(demo.subset);
+   s.code = s0.code;
+   s.name = s0.name;
+   s.elements = s0.elements;
+   s.chi = {};
+   for (var i = 1; i <= demo.N; i++) {
+    s.chi[i] = 0;
+   }
+   for (var e of s.elements) {
+    s.chi[e] = 1;
+   }
+
+   return s;
+  }
+
+  demo.subset.create_dom = function() {
+   this.svg_group = core.svg.group();
+   demo.main_svg.appendChild(this.svg_group);
+   this.svg_markers = {};
+   for (j = 1; j <= demo.N; j++) {
+    if (this.chi[j] == 1) {
+     var p = core.svg.disc(demo.f(j), demo.g(5 - this.i), 5, 'red', 1);
+    } else {
+     var p = core.svg.circle(demo.f(j), demo.g(5 - this.i), 1, 'grey', 1);
+    }
+    this.svg_markers[j] = p;
+    this.svg_group.appendChild(p);
+   }
+
+   this.svg_top_label = core.svg.math_text(this.code, demo.f(0), demo.g(5 - this.i));
+   this.svg_group.appendChild(this.svg_top_label);
+
+   this.svg_label = [];
+   for (j = 0; j < 2; j++) {
+    var l = core.svg.math_text(this.code, demo.f(0.4 * this.i - 3), demo.g(-2.1-j));
+    this.svg_label.push(l);
+    l.setAttribute('fill', '#CCCCCC');
+    l.setAttribute('pointer-events','all');
+    (function(l,i,j) { l.addEventListener('click', function() { demo.set_set(i,j); })})(l,this.i,j);
+    this.svg_group.appendChild(l);
+   }
+  }
+
+  demo.subset.show = function(v,j) {
+   var c = v ? '#000000' : '#CCCCCC';
+   if (j in this.svg_label) {
+    this.svg_label[j].setAttribute('fill', c);
+   }
+
+   c = ['red','blue','green'][j];
+   if (v) {
+    for (i = 1; i <= demo.N; i++) {
+     if (this.chi[i] == 1) {
+      demo.operand[j][i].setAttribute('stroke', c);
+      demo.operand[j][i].setAttribute('fill', c);
+      demo.operand[j][i].setAttribute('r', 5);
+      if (j == 2) {
+       demo.svg_headers[1][i].setAttribute('fill', '#000000');
+      }
+     } else {
+      demo.operand[j][i].setAttribute('stroke', 'grey');
+      demo.operand[j][i].setAttribute('fill', 'grey');
+      demo.operand[j][i].setAttribute('r', 1);
+      if (j == 2) {
+       demo.svg_headers[1][i].setAttribute('fill', '#CCCCCC');
+      }
+     }
+    }
+   }
+  }
+
+  demo.set_set = function (i,j) {
+   if (this.current_set[j] != null && this.current_set[j].i == i) {
+    i = -1;
+    this.current_set[j] = null;
+    for (var k = 1; k <= demo.N; k++) {
+     demo.operand[j][k].setAttribute('stroke', 'grey');
+     demo.operand[j][k].setAttribute('fill', 'grey');
+     demo.operand[j][k].setAttribute('r', 1);
+    }
+   }
+   for (var s of this.subsets) {
+    if (s.i == i) {
+     this.current_set[j] = s;
+     s.show(true,j);
+    } else {
+     s.show(false,j);
+    }
+   }
+
+   this.show_result();
+  }
+
+  demo.set_op = function (i) {
+   if (this.current_op != null && this.current_op.i == i) {
+    i = -1;
+    this.current_op = null;
+   } else {
+    this.current_op = this.ops[i];
+   }
+   for (j = 0; j < 3; j++) {
+    var o = demo.ops[j];
+    var c = i == j ? '#000000' : '#CCCCCC';
+    o.svg.setAttribute('fill', c);
+   }
+
+   this.show_result();
+  }
+
+  demo.show_result = function() {
+   if (this.current_set[0] && this.current_set[1] && this.current_op) {
+    var s0 = this.current_set[0];
+    var s1 = this.current_set[1];
+    var o = this.current_op;
+    var s = this.subset.munch({ code : s0.code + o.unicode + s1.code + ' =', name : '', elements : [] });
+    for (var i = 1; i <= demo.N; i++) {
+     if (o.name == 'union') {
+      s.chi[i] = s0.chi[i] || s1.chi[i];
+     } else if (o.name == 'intersect') {
+      s.chi[i] = s0.chi[i] && s1.chi[i];
+     } else if (o.name == 'minus') {
+      s.chi[i] = s0.chi[i] && !s1.chi[i];
+     }
+     if (s.chi[i]) {
+      s.elements.push(i);
+     }
+    }
+    s.svg_label = {};
+    s.show(true,2);
+    demo.result_label.textContent = s.code;
+   } else {
+    for (var i = 1; i <= demo.N; i++) {
+     demo.operand[2][i].setAttribute('stroke', 'grey');
+     demo.operand[2][i].setAttribute('fill', 'grey');
+     demo.operand[2][i].setAttribute('r', 1);
+     demo.svg_headers[1][i].setAttribute('fill', '#CCCCCC');
+    }
+    demo.result_label.textContent = '';
+   }
+  }
+
+  demo.init = function () {
+   var e, i, j, k, dx, dy, old_sets;
+
+   var me = this;
+   this.find_ids(['labels0_div', 'labels1_div']);
+
+   demo.subsets0 = [
+    { code : 'P', name : 'Primes'           , elements : [2,3,5,7,11,13,17,19]},
+    { code : 'E', name : 'Even numbers'     , elements : [2,4,6,8,10,12,14,16,18,20]},
+    { code : 'O', name : 'Odd numbers'      , elements : [1,3,5,7,9,11,13,15,17,19]},
+    { code : 'S', name : 'Squares'          , elements : [1,4,9,16]},
+    { code : 'C', name : 'Cubes'            , elements : [1,8]},
+    { code : 'F', name : 'Fibonacci numbers', elements : [1,2,3,5,8,13]}
+   ];
+
+   demo.op_latex = { 'union': '\\cup', 'intersect': '\\cap', 'minus': '\\setminus' };
+
+   demo.subsets = [];
+   demo.subsets_index = {};
+   demo.current_subset = null;
+
+   this.svg_headers = [{},{}];
+   for (i = 0; i < 2; i++) {
+    for  (j = 1; j <= demo.N; j++) {
+     this.svg_headers[i][j] = core.svg.text(j, demo.f(j), demo.g(i ? -4.5 : 6));
+     if (i) {
+      this.svg_headers[i][j].setAttribute('fill', '#CCCCCC');
+     }
+     this.main_svg.appendChild(this.svg_headers[i][j]);
+    }
+   }
+
+   var i = 0;
+
+   for (s0 of demo.subsets0) {
+    var s = demo.subset.munch(s0);
+    demo.subsets.push(s)
+    demo.subsets_index[s.name] = s;
+    s.i = i++;
+   }
+
+   for (s of demo.subsets) {
+    s.create_dom();
+   }
+
+   for (i in demo.ops) {
+    var o = demo.ops[i];
+    o.svg = core.svg.math_text(o.unicode,  demo.f(0.6 * i - 2.5), demo.g(-2.6));
+    o.svg.setAttribute('fill', '#CCCCCC');
+    o.svg.setAttribute('pointer-events','all');
+    (function(o,i) { o.svg.onclick = function() { demo.set_op(i); } })(o,i);
+    this.main_svg.appendChild(o.svg);
+   }
+
+   demo.operand = [{},{},{}];
+   for (i = 0; i < 3; i++) {
+    for (j = 1; j <= demo.N; j++) {
+     var p = core.svg.circle(demo.f(j), demo.g(-2-i), 1, 'grey', 1);
+     demo.operand[i][j] = p;
+     this.main_svg.appendChild(p);
+    }
+   }
+
+   demo.result_label = core.svg.math_text('', demo.f(-1.5), demo.g(-4.1));
+   this.main_svg.appendChild(demo.result_label);
+  }
+
+ </script>
+</head>
+
+<body onload="demo.init()">
+ <div id="frame">
+  <svg id="main_svg" width="1300" height="700"></svg>
+  <!--
+   <div id="controls_div">
+    <div class="control" id="previous" onclick="demo.previous()">Previous</div>
+    <div class="control" id="next" onclick="demo.next()">Next</div>
+   </div>
+   <div class="youtube_link">
+    <img id="youtube_button" src="video_icon.png" height="40px"/>
+   </div>
+-->
+ </div>
+</body>
+
+</html>
