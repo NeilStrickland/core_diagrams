@@ -12,7 +12,8 @@ $demos_json = <<<JSON
  ["real_setops","Operations on subsets of the reals",[]],
  ["nat_setops","Operations on finite subsets of the naturals",[]],
  ["prod","Cartesian products",[]],
- ["symdiff","De Morgan's laws and symetric differences",[]]
+ ["symdiff","De Morgan's laws and symetric differences",[]],
+ ["coins","Tossing five coins",[]]
 ]
 JSON;
 

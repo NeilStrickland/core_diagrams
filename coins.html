@@ -1,0 +1,387 @@
+<html>
+ <head>
+  <style type="text/css" media="screen">
+   @import url(MAS106_demo.css);
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js"> 
+   MathJax.Hub.Config({
+    extensions: ["tex2jax.js"],
+    jax: ["input/TeX","output/HTML-CSS"],
+    tex2jax: {inlineMath: [["$","$"]]}
+   });
+  </script> 
+  <script type="text/javascript"
+   src="https://cdnjs.cloudflare.com/ajax/libs/gsap/2.0.2/TweenMax.min.js">
+  </script>
+
+  <style type="text/css">
+   div#main_div {
+    position: absolute;
+    top: 10px;
+    left: 600px;
+    font-size: 20px;
+   }
+   
+   div#controls_div { 
+    position:absolute; 
+    right: 30px;
+    top: 30px;
+   }
+
+  </style>
+  <script src="core.js"></script>  
+  <script type="text/javascript">
+   var demo = Object.create(core.demo);
+
+   demo.x0 = 100;
+   demo.y0 = 500;
+   demo.w0 = 140;
+   demo.h0 = 60;
+
+   demo.f = function (i) {
+    return Math.round(demo.x0 + i * demo.w0);
+   }
+
+   demo.g = function (j) {
+    return Math.round(demo.y0 - j * demo.h0);
+   }
+
+   demo.seq = {}
+
+   demo.subset = {};
+
+   demo.subset.decorate = function(s) {
+    for (var j = 0; j < 5; j++) {
+     var l = s.letters[j];
+     if (this.mem(s)) {
+      l.setAttribute('fill', s.bits[j] ? '#FF0000' : '#0000FF');
+     } else {
+      l.setAttribute('fill', s.bits[j] ? '#BBBBBB' : '#BBBBBB');
+     }
+    }
+   }
+
+   demo.subsets = [];
+
+   demo.init = function() {
+    var me = this;
+    this.name = 'coins';
+    this.n = 4;
+
+    this.find_ids();
+
+    this.seqs = [];
+    this.seqs_by_count = [];
+    this.subsets = [];
+
+    for (var i = 0; i < 32; i++) {
+     var s = Object.create(demo.seq);
+     this.seqs.push(s);
+     s.i = i;
+     s.x0 = i % 4;
+     s.y0 = Math.floor(i / 4);
+     s.X0 = this.f(s.x0);
+     s.Y0 = this.g(s.y0);
+     s.bits = [];
+     s.string = '';
+     s.num_heads = 0;
+     s.num_tails = 0;
+     s.letters = [];
+     var i0 = i;
+     for (var j = 0; j < 5; j++) {
+      var b = i0 % 2;
+      i0 = Math.floor(i0 / 2);
+      s.bits.push(b);
+      var c =  b ? 'H' : 'T';
+      s.string = s.string + c;
+      var l = core.svg.text(c, this.f(s.x0+0.13*j), this.g(s.y0));
+      this.main_svg.appendChild(l);
+      s.letters.push(l);
+      if (b) {
+       s.num_heads++;
+      } else {
+       s.num_tails++;
+      } 
+     }
+    }
+
+    var P = [[0],[1,2,4,8,16],[3,6,12,24,5,20,9,18,17,10],[28,25,19,7,26,11,22,13,14,21],[30,29,27,23,15],[31]];
+    for (i = 0; i <= 5; i++) {
+     var p = P[i];
+     var n = p.length;
+     for (j = 0; j <n; j++) {
+      var s = this.seqs[p[j]];
+      s.x1 = i;
+      s.y1 = 3.5 + 0.8 * (j - (n-1)/2);
+      s.X1 = this.f(s.x1);
+      s.Y1 = this.g(s.y1);
+     }
+    }
+
+    demo.A = Object.create(demo.subset);
+    demo.A.name = 'A';
+    demo.A.mem = function(s) { return s.num_heads > s.num_tails; };
+    var r = core.svg.rect(this.f(2.8),this.f(-0.5),400,500,'magenta',3);
+    r.setAttribute('stroke-linejoin', 'round');
+    r.setAttribute('display', 'none');
+    this.main_svg.appendChild(r);
+    demo.A.outline = r;
+    demo.A.seqs = [];
+    demo.subsets.push(demo.A);
+
+    demo.B = Object.create(demo.subset);
+    demo.B.name = 'B';
+    demo.B.mem = function(s) { 
+     for (var j = 0; j < 4; j++) { if (s.bits[j] == 0 && s.bits[j+1] == 0) { return true; } }
+     return false;
+    };
+    demo.B.decorate = function(s) {
+     for (var j = 0; j < 5; j++) {
+      var l = s.letters[j];
+      if (this.mem(s)) {
+       if (s.bits[j] == 0 && ((j < 4 && s.bits[j+1] == 0) || (j > 0 && s.bits[j-1] == 0))) {
+        l.setAttribute('fill', '#0000FF');
+       } else {
+        l.setAttribute('fill', '#BBBBBB');
+       }
+      } else {
+       l.setAttribute('fill', '#BBBBBB');
+      }
+     }
+    }
+    var pts = [[-0.2,-0.8],[3.7,-0.8],[3.7,2.7],[2.7,2.7],[2.7,6.7],[-0.2,6.7],[-0.2,-0.8]];
+    pts = pts.map(u => [this.f(u[0]),this.g(u[1])]);
+    var p = core.svg.lines(pts,'cyan',3);
+    p.setAttribute('stroke-linejoin', 'round');
+    p.setAttribute('display', 'none');
+    this.main_svg.appendChild(p);
+    demo.B.outline = p;
+    demo.B.seqs = [];
+    demo.subsets.push(demo.B);
+
+    demo.C = Object.create(demo.subset);
+    demo.C.name = 'B';
+    demo.C.mem = function(s) { 
+     for (var j = 0; j < 4; j++) { if (s.bits[j] == 1 && s.bits[j+1] == 1) { return true; } }
+     return false;
+    };
+    demo.C.decorate = function(s) {
+     for (var j = 0; j < 5; j++) {
+      var l = s.letters[j];
+      if (this.mem(s)) {
+       if (s.bits[j] == 1 && ((j < 4 && s.bits[j+1] == 1) || (j > 0 && s.bits[j-1] == 1))) {
+        l.setAttribute('fill', '#FF0000');
+       } else {
+        l.setAttribute('fill', '#BBBBBB');
+       }
+      } else {
+       l.setAttribute('fill', '#BBBBBB');
+      }
+     }
+    }
+    pts = pts.map(u => [980-u[0],u[1]]);
+    var p = core.svg.lines(pts,'orange',3);
+    p.setAttribute('stroke-linejoin', 'round');
+    p.setAttribute('display', 'none');
+    this.main_svg.appendChild(p);
+    demo.C.outline = p;
+    demo.C.seqs = [];
+    demo.subsets.push(demo.C);
+
+    demo.AnB = Object.create(demo.subset);
+    demo.AnB.name = 'AnB';
+    demo.AnB.mem = function(s) { return demo.A.mem(s) && demo.B.mem(s); };
+    demo.AnB.seqs = [];
+    var r = core.svg.rect(this.f(2.9),this.g(2.6),100,180,'#008800',3);
+    r.setAttribute('stroke-linejoin', 'round');
+    r.setAttribute('display', 'none');
+    this.main_svg.appendChild(r);
+    demo.AnB.outline = r;
+    demo.subsets.push(demo.AnB);
+
+    demo.AnC = Object.create(demo.subset);
+    demo.AnC.name = 'AnC';
+    demo.AnC.mem = function(s) { return demo.A.mem(s) && demo.C.mem(s); };
+    demo.AnC.seqs = [];
+    var r = core.svg.rect(this.f(2.9),this.g(6.6),380,420,'#008800',3);
+    r.setAttribute('stroke-linejoin', 'round');
+    r.setAttribute('display', 'none');
+    this.main_svg.appendChild(r);
+    demo.AnC.outline = r;
+    demo.subsets.push(demo.AnC);
+
+    demo.AmC = Object.create(demo.subset);
+    demo.AmC.name = 'AmC';
+    demo.AmC.mem = function(s) { return demo.A.mem(s) && !demo.C.mem(s); };
+    demo.AmC.decorate = function(s) {
+     for (var j = 0; j < 5; j++) {
+      var l = s.letters[j];
+      if (this.mem(s)) {
+       l.setAttribute('fill', s.bits[j] ? '#FF0000' : '#0000FF');
+      } else {
+       l.setAttribute('fill', s.bits[j] ? '#BBBBBB' : '#BBBBBB');
+      }
+     }
+    }
+    demo.AmC.seqs = [];
+    var r = core.svg.rect(this.f(2.9),this.g(7.4),100,30,'#008800',3);
+    r.setAttribute('stroke-linejoin', 'round');
+    r.setAttribute('display', 'none');
+    this.main_svg.appendChild(r);
+    demo.AmC.outline = r;
+    demo.subsets.push(demo.AmC);
+
+    for (var X of demo.subsets) {
+     for (var s of demo.seqs) {
+      if (X.mem(s)) {
+       X.seqs.push(s);
+      }
+     }
+    }
+
+    this.pos = 0;
+    document.getElementById('shuffle').onclick = function() { demo.shuffle(); };
+    document.getElementById('show_A').onclick = function() { 
+     demo.decorate(demo.A); 
+     demo.clear_outlines();
+     if (demo.pos == 1) { demo.A.outline.setAttribute('display','inline'); }
+    };
+    document.getElementById('show_B').onclick = function() { 
+     demo.decorate(demo.B); 
+     demo.clear_outlines();
+     if (demo.pos == 1) { demo.B.outline.setAttribute('display','inline'); }
+    };
+    document.getElementById('show_C').onclick = function() { 
+     demo.decorate(demo.C); 
+     demo.clear_outlines();
+     if (demo.pos == 1) { demo.C.outline.setAttribute('display','inline'); }
+    };
+    document.getElementById('show_AnB').onclick = function() { 
+     demo.decorate(demo.AnB); 
+     demo.clear_outlines();
+     if (demo.pos == 1) { 
+      demo.A.outline.setAttribute('display','inline'); 
+      demo.B.outline.setAttribute('display','inline'); 
+      demo.AnB.outline.setAttribute('display','inline'); 
+     }
+    };
+    document.getElementById('show_AnC').onclick = function() { 
+     demo.decorate(demo.AnC); 
+     demo.clear_outlines();
+     if (demo.pos == 1) { 
+      demo.A.outline.setAttribute('display','inline'); 
+      demo.C.outline.setAttribute('display','inline'); 
+      demo.AnC.outline.setAttribute('display','inline'); 
+     }
+    };
+    document.getElementById('show_AmC').onclick = function() { 
+     demo.decorate(demo.AmC); 
+     demo.clear_outlines();
+     if (demo.pos == 1) { 
+      demo.A.outline.setAttribute('display','inline'); 
+      demo.C.outline.setAttribute('display','inline'); 
+      demo.AmC.outline.setAttribute('display','inline'); 
+     }
+    };
+    document.getElementById('clear').onclick  = function() { 
+     demo.clear(); 
+     demo.clear_outlines();
+    };
+
+    this.col_labels = [];
+    this.col_bars = [];
+
+    for (var j = 0; j <= 5; j++) {
+     var l = core.svg.math_text('#heads=' + j, this.f(j+0.3), this.g(-1.5));
+     l.setAttribute('display', 'none');
+     this.col_labels.push(l);
+     this.main_svg.appendChild(l);
+     if (j > 0) {
+      var l = core.svg.vline(this.f(j-0.2), this.g(-2), this.g(8.5),'green',1);
+      l.setAttribute('display', 'none');
+      this.col_bars.push(l);
+      this.main_svg.appendChild(l);
+     }
+    }
+   }
+
+   demo.show_cols = function(x) {
+    for (var l of this.col_labels) {
+     l.setAttribute('display',x ? 'inline' : 'none');
+    }
+
+    for (var l of this.col_bars) {
+     l.setAttribute('display',x ? 'inline' : 'none');
+    }
+   }
+
+   demo.shuffle = function() {
+    var i = 1 - this.pos;
+    this.pos = i;
+    for (var s of this.seqs) {
+     var x = i ? s.X1 : s.X0;
+     var y = i ? s.Y1 : s.Y0;
+     for (var j = 0; j < 5 ; j++) {
+      var l = s.letters[j];
+      var xa = l.getAttribute('x');
+      var ya = l.getAttribute('y');
+      var xb = x - s.X0;
+      var yb = y - s.Y0;
+      TweenMax.to(l, 1, {x : xb, y : yb});
+     }
+    }
+
+    this.show_cols(i);
+    if (i == 0) {
+     this.clear_outlines();
+    }
+   }
+
+   demo.decorate = function(X) {
+    this.show_cols(0);
+    for (var s of this.seqs) {
+     X.decorate(s);
+    }
+   }
+
+   demo.clear_outlines = function() {
+    for (var X of this.subsets) {
+     if ('outline' in X) {
+      X.outline.setAttribute('display','none');
+     }
+    }
+   }
+
+   demo.clear = function() {
+    this.show_cols(this.pos);
+    for (var s of this.seqs) {
+     for (var l of s.letters) {
+      l.setAttribute('fill', '#000000');
+     }
+    }
+   }
+
+  </script>
+ </head>
+ <body onload="demo.init()">
+  <div id="frame">
+   <svg id="main_svg" width="1000" height="700">
+   </svg>
+   <div id="controls_div">
+    <table>
+     <tr><td class="control" id="shuffle">Shuffle</td></tr>
+     <tr><td class="control" id="show_A">Show $A$</td></tr>
+     <tr><td class="control" id="show_B">Show $B$</td></tr>
+     <tr><td class="control" id="show_C">Show $C$</td></tr>
+     <tr><td class="control" id="show_AnB">Show $A\cap B$</td></tr>
+     <tr><td class="control" id="show_AnC">Show $A\cap C$</td></tr>
+     <tr><td class="control" id="show_AmC">Show $A\setminus C$</td></tr>
+     <tr><td class="control" id="clear">Clear</td></tr>
+    </table>
+   </div>
+   <div id="main_div">
+   </div>
+  </div>
+ </body>
+</html>
+  
