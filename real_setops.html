@@ -4,14 +4,8 @@
  <style type="text/css" media="screen">
   @import url(MAS106_demo.css);
  </style>
-
- <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js">
-  MathJax.Hub.Config({
-   extensions: ["tex2jax.js"],
-   jax: ["input/TeX", "output/HTML-CSS"],
-   tex2jax: { inlineMath: [["$", "$"]] }
-  });
- </script>
+ <script>MathJax = { tex: { inlineMath: [['$', '$']] }};</script>
+ <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
  <script src="core.js"></script>
  <script src="MAS106_demo.js"></script>
  <style type="text/css">
@@ -146,7 +140,9 @@
    this.label_div = document.createElement('div');
    this.label_div.className = 'control';
    this.label_div.style.width = '200px';
-   this.label_div.innerHTML = '$' + this.name + '=' + this.value.latex() + '$';
+   this.text_a = '$' + this.name + '=' + this.value.latex() + '$';
+   this.text_b = '$' + this.name + '=' + this.value.latex() + '=' + this.equiv.name + '$';
+   this.label_div.innerHTML = this.text_a;
    var i = this.i;
    this.label_div.onclick = function() { demo.set_subset1(i); };
    demo.labels1_div.appendChild(this.label_div);
@@ -155,24 +151,31 @@
    this.tag.style.position = 'absolute';
    this.tag.style.left = '50px';
    this.tag.style.display = 'none';
-   this.tag.style.top = (430) + 'px';
+   this.tag.style.top = (370) + 'px';
    this.tag.innerHTML = '$' + this.name + '$';
    demo.frame.appendChild(this.tag);
   }
 
-  demo.subset1.show = function (t) {
-   var v = t ? 'display' : 'none';
+  demo.subset1.show = function (t, u) {
+   var v = t ? 'block' : 'none';
    var c = t ? '#CC6622' : '#F5B041';
    this.svg_group.setAttribute('display', v);
    this.label_div.style['border-color'] = c;
    this.tag.style.display = v;
+   if (u) {
+    this.label_div.innerHTML = this.text_b;
+    this.label_div.style['background-color'] = '#DDFFDD';
+   } else {
+    this.label_div.innerHTML = this.text_a;
+    this.label_div.style['background-color'] = '#FFFFFF';
+   }
   }
 
   demo.set_subset0 = function (i) {
    if (this.current_subset0 != null && this.current_subset0.i == i) {
     i = -1;
-    this.current_subset0 = null;
    }
+   this.current_subset0 = null;
    for (var s of this.subsets0) {
     if (s.i == i) {
      this.current_subset0 = s;
@@ -181,21 +184,28 @@
      s.show(false);
     }
    }
+   this.set_subset1(-1);
+   MathJax.typeset();
   }
 
   demo.set_subset1 = function (i) {
    if (this.current_subset1 != null && this.current_subset1.i == i) {
     i = -1;
-    this.current_subset1 = null;
    }
+   this.current_subset1 = null;
    for (var s of this.subsets1) {
     if (s.i == i) {
      this.current_subset1 = s;
-     s.show(true);
+     if (s.equiv == this.current_subset0) {
+      s.show(true, true);
+     } else {
+      s.show(true, false);
+     }
     } else {
-     s.show(false);
+     s.show(false, false);
     }
    }
+   MathJax.typeset();
   }
 
   demo.init = function () {
@@ -258,6 +268,7 @@
 
    for (s of demo.subsets0) {
     s.equiv = demo.subsets1_index[s.equiv_name];
+    s.equiv.equiv = s;
     s.value = s.equiv.value;
     var p = interval.munch([s.value.type, s.value.start, s.value.end]);
     s.pieces.push(p);
@@ -267,6 +278,8 @@
    for (s of demo.subsets1) {
     s.create_dom();
    } 
+
+   MathJax.typeset();
   }
 
  </script>

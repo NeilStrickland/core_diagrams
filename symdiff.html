@@ -3,13 +3,8 @@
   <style type="text/css" media="screen">
    @import url(MAS106_demo.css);
   </style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js"> 
-   MathJax.Hub.Config({
-    extensions: ["tex2jax.js"],
-    jax: ["input/TeX","output/HTML-CSS"],
-    tex2jax: {inlineMath: [["$","$"]]}
-   });
-  </script> 
+  <script>MathJax = { tex: { inlineMath: [['$', '$']] }};</script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
   <style type="text/css">
    div#main_div {
     position: absolute;
@@ -39,6 +34,13 @@
     height: 20px;
     border-radius: 4px;
     background-color: #FFEE66;
+   }
+
+   div.selected_set {
+    padding: 8px;
+    height: 20px;
+    border-radius: 4px;
+    background-color: #FFA500;
    }
 
    div.set:hover {
@@ -156,6 +158,11 @@
      ['X\\Delta Y\\Delta Z'     ,[1,2,3,7],       0,10],
     ];
 
+    this.sets_index = {};
+    for (i = 0; i < this.sets0.length; i++) {
+     this.sets_index[this.sets0[i][1].join('')] = i;
+    }
+
     this.step = 0;
 
     x0 = this.x0;
@@ -263,7 +270,7 @@
     this.make_point(2,[2,3,4,5,6,7],'Y\\cup Z');
     this.make_point(3,[1,3,4,5,6,7],'X\\cup Z');
     this.make_point(4,[3,5,6,7],'Z');
-    this.make_point(5,[1,6,4,7],'X');
+    this.make_point(5,[1,4,6,7],'X');
     this.make_point(6,[2,4,5,7],'Y');
 
     for (i = 0; i <= 6; i++) {
@@ -290,6 +297,8 @@
     this.caption.style.top = '650px';
     this.caption.innerHTML = '';
     this.frame.appendChild(this.caption);
+
+    MathJax.typeset();
    }
    
    demo.make_region = function(i,u,I,x0,y0,e) {
@@ -297,7 +306,9 @@
     
     r = Object.create(region);
     this.region[i] = r;
+    r.index = i;
     r.regions = [i];
+    r.set_index = this.sets_index[r.regions.join('')];
     demo.make_chi(r);
     r.label = 'r' + i;
     r.col = this.cols[i];
@@ -331,6 +342,7 @@
     a.index = i;
     a.label = 'a' + i;
     a.regions = R;
+    a.set_index = this.sets_index[a.regions.join('')];
     demo.make_chi(a);
     a.latex = '$' + e + '$';
     
@@ -354,6 +366,7 @@
     m.index = i;
     m.label = 'p' + i;
     m.regions = R;
+    m.set_index = this.sets_index[m.regions.join('')];
     demo.make_chi(m);
     m.latex = '$' + e + '$';
     
@@ -418,7 +431,11 @@
     }
     if (x.latex) {
      this.caption.innerHTML = x.latex;
-     MathJax.Hub.Queue(["Typeset",MathJax.Hub,this.caption])
+     MathJax.typeset([this.caption]);
+    }
+    for (j = 0; j < this.sets.length; j++) {
+     var c = (x.set_index == j) ? 'selected_set' : 'set';
+     this.sets[j].div.className = c;
     }
    }
    
@@ -428,11 +445,19 @@
      r.svg.setAttribute('fill','grey');
     }
     this.caption.innerHTML = '';
-    MathJax.Hub.Queue(["Typeset",MathJax.Hub,this.caption])
+    MathJax.typeset([this.caption]);
+    for (j = 0; j < this.sets.length; j++) {
+     this.sets[j].div.className = 'set';
+    }
    }
    
    demo.set_set = function(i) {
     var s = this.sets[i];
+
+    for (j = 0; j < this.sets.length; j++) {
+     var c = (i == j) ? 'selected_set' : 'set';
+     this.sets[j].div.className = c;
+    }
 
     for (j = 0; j < 8; j++) {
      var r = this.region[j];
@@ -441,7 +466,7 @@
     }
 
     this.caption.innerHTML = s.latex;
-    MathJax.Hub.Queue(["Typeset",MathJax.Hub,this.caption])
+    MathJax.typeset([this.caption]);
    }
 
   </script>

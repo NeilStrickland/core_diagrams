@@ -3,13 +3,8 @@
   <style type="text/css" media="screen">
    @import url(MAS106_demo.css);
   </style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js"> 
-   MathJax.Hub.Config({
-    extensions: ["tex2jax.js"],
-    jax: ["input/TeX","output/HTML-CSS"],
-    tex2jax: {inlineMath: [["$","$"]]}
-   });
-  </script> 
+  <script>MathJax = { tex: { inlineMath: [['$', '$']] }};</script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
   <style type="text/css">
    div#main_div {
     position: absolute;
@@ -64,7 +59,7 @@
     }
 
     this.caption.innerHTML = this.sets[i].full_latex;
-    MathJax.Hub.Queue(["Typeset",MathJax.Hub,this.caption]);
+    MathJax.typeset([this.caption]);
    }
 
    demo.init = function() {
@@ -178,6 +173,8 @@
     this.caption.style.top = '600px';
     this.caption.innerHTML = '';
     this.frame.appendChild(this.caption);
+
+    MathJax.typeset();
    }
 
   </script>
